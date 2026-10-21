@@ -1,0 +1,19 @@
+SITE — Dra. Milene Paz, Fisioterapeuta Cardiorrespiratória
+
+Arquivos
+  index.html      página (abre direto no navegador)
+  css/style.css   estilos (cores e fontes da identidade visual no topo)
+  js/script.js    menu do celular, libélula que respira, calculadora do Peak Flow
+  img/            logotipos e símbolos em SVG (para redes sociais, favicon etc.)
+
+Antes de publicar, troque:
+  1. js/script.js, no bloco CONTATO no início: o usuário do Instagram (sem o @).
+     O WhatsApp já está configurado: (47) 99763-8337.
+  2. CREFITO já configurado no rodapé: 105191.
+  3. index.html, seção "Sobre mim": troque o bloco com o texto "Espaço para a foto da Dra. Milene"
+     por uma foto, por exemplo: <img src="img/milene.jpg" alt="Dra. Milene Paz"> dentro de <div class="portrait">.
+
+O mapa do final já vem com o Google Maps incorporado (Interclínicas, R. Amazonas, 75, Centro, Jaraguá do Sul).
+
+Para hospedar: envie a pasta inteira para qualquer hospedagem de site estático
+(Netlify, Vercel, GitHub Pages, Hostinger etc.). Não precisa de servidor nem banco de dados.

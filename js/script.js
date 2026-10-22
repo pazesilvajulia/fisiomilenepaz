@@ -99,4 +99,32 @@ const CONTATO = {
     else out.innerHTML = "<b>Zona vermelha.</b> Sinal de alerta. Siga o plano de crise e procure atendimento médico.";
   };
   best.addEventListener("input", calc); today.addEventListener("input", calc); calc();
+
+  /* Linha do tempo: progresso pela rolagem, libélula na ponta da linha, etapas acendem */
+  const tl = document.getElementById("timeline");
+  if (tl) {
+    const rail = tl.querySelector(".tl-rail"), items = [...tl.querySelectorAll(".tl-item")];
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (still) { tl.style.setProperty("--p", 1); items.forEach(i => i.classList.add("on")); }
+    else {
+      tl.classList.add("js");
+      let ticking = false;
+      const update = () => {
+        ticking = false;
+        const r = rail.getBoundingClientRect(), target = window.innerHeight * 0.62;
+        const p = Math.min(1, Math.max(0, (target - r.top) / r.height));
+        tl.style.setProperty("--p", p.toFixed(4));
+        tl.classList.toggle("flying", p > 0.001 && p < 0.999);
+        const head = r.top + p * r.height;
+        items.forEach(it => {
+          const n = it.querySelector(".tl-node").getBoundingClientRect();
+          it.classList.toggle("on", p > 0.002 && head >= n.top + n.height / 2 - 2);
+        });
+      };
+      const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      update();
+    }
+  }
 })();

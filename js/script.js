@@ -31,6 +31,23 @@ const CONTATO = {
   };
   window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
 
+
+  /* Título da abertura dividido em palavras, para subir uma a uma */
+  (function splitTitle() {
+    const h1 = document.querySelector(".hero h1"); if (!h1 || h1.dataset.split) return;
+    h1.dataset.split = 1; let i = 0;
+    const wrap = word => { const w = document.createElement("span"); w.className = "w"; const s = document.createElement("span"); s.style.setProperty("--i", i++); s.append(word); w.append(s); return w; };
+    [...h1.childNodes].forEach(node => {
+      if (node.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach(part => { if (!part) return; frag.append(/\s+/.test(part) ? document.createTextNode(" ") : wrap(part)); });
+        node.replaceWith(frag);
+      } else { const w = wrap(""); w.firstChild.append(node.cloneNode(true)); node.replaceWith(w); }
+    });
+    /* o ponto final grudado na palavra anterior */
+    h1.querySelectorAll(".w").forEach(w => { if (w.textContent === ".") { const prev = w.previousElementSibling; if (prev) { prev.firstChild.append("."); w.remove(); } } });
+  })();
+
   /* Primeira tela no celular: ajusta o tamanho dos elementos para que a abertura
      ocupe a tela inteira e termine nos locais de atendimento */
   const heroText = document.querySelector(".hero-text");
@@ -125,6 +142,128 @@ const CONTATO = {
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onScroll);
       update();
+    }
+  }
+
+  /* =================== MOVIMENTO =================== */
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!calm) document.documentElement.classList.add("motion");
+
+  /* Barra de progresso de leitura */
+  const readBar = document.getElementById("readProgress");
+  if (readBar && !calm) {
+    let rq = false;
+    const read = () => { rq = false; const max = document.documentElement.scrollHeight - innerHeight; readBar.style.setProperty("--read", max > 0 ? (scrollY / max).toFixed(4) : 0); };
+    addEventListener("scroll", () => { if (!rq) { rq = true; requestAnimationFrame(read); } }, { passive: true });
+    read();
+  }
+
+  if (!calm) {
+    /* Ícones desenhados: cada traço vira um caminho de comprimento 1 */
+    const drawSel = ".service .ico svg, .place svg, .xp svg, .channel .ci svg:not([href]), .tl-node svg";
+    document.querySelectorAll(drawSel).forEach(svg => {
+      if (svg.querySelector("use")) return;
+      svg.classList.add("draw");
+      svg.querySelectorAll("path,circle,rect").forEach(el => { if (el.getAttribute("fill") && el.getAttribute("fill") !== "none") return; el.setAttribute("pathLength", "1"); });
+    });
+
+    /* POWERbreathe: traçado do monitor e luzes */
+    const pb = document.querySelector("#powerbreathe .dev-art svg");
+    if (pb) {
+      const line = pb.querySelector('path[d^="M76 132"]'); if (line) line.classList.add("ecg");
+      pb.querySelectorAll('circle[r="10"]').forEach(cl => cl.classList.add("dev-led"));
+    }
+
+    /* Quem entra em cena, de que jeito e com qual intervalo entre irmãos */
+    const plan = [
+      [".band:not(.hero) .eyebrow", "track", 0],
+      [".sec-head h2, .about-text h2, .final h2", "mask", 0],
+      [".sec-head p", "up", 0],
+      [".stats", "up", 0],
+      [".portrait", "curtain", 0],
+      [".about-text > p:not(.sign)", "up", 0],
+      [".xp li", "left", 110],
+      [".sign", "write", 0],
+      [".service", "up", 140],
+      [".place", "scale", 70],
+      [".focus-note", "up", 0],
+      [".online .btn", "up", 0],
+      [".channel", "right", 120],
+      [".device", "up", 0],
+      [".dev-art", "scale", 0],
+      [".dev-text h3", "mask", 0],
+      [".feat li", "up", 70],
+      [".zones", "up", 0],
+      [".loc-card", "left", 0],
+      [".map", "right", 0],
+      [".final p", "up", 0],
+      [".contact-list a", "up", 110],
+      ["footer .wrap > *", "up", 90],
+    ];
+    const watched = [];
+    plan.forEach(([sel, kind, step]) => {
+      const groups = new Map();
+      document.querySelectorAll(sel).forEach(el => {
+        if (el.closest(".hero") || el.dataset.reveal) return;
+        const k = el.parentElement; const n = groups.get(k) || 0; groups.set(k, n + 1);
+        el.dataset.reveal = kind;
+        el.style.setProperty("--d", Math.min(n * step, 600) + "ms");
+        watched.push(el);
+      });
+    });
+    /* Só esconde o que ainda está abaixo da tela: nada fica invisível esperando */
+    const below = el => el.getBoundingClientRect().top > innerHeight * 0.92;
+    watched.forEach(el => { if (below(el)) el.classList.add("pre"); });
+    document.querySelectorAll(".draw").forEach(svg => { const host = svg.closest("[data-reveal]"); if (!host && below(svg)) svg.classList.add("pre"); });
+
+    /* Revela pela posição na tela (funciona mesmo com recortes e no fim da página) */
+    const reveal = el => { el.classList.remove("pre"); el.classList.add("in"); if (el.matches(".stats")) el.querySelectorAll(".stat").forEach(countUp); };
+    let pending = [...document.querySelectorAll(".pre")];
+    let rq2 = false;
+    const check = () => {
+      rq2 = false;
+      const atEnd = scrollY + innerHeight >= document.documentElement.scrollHeight - 4;
+      pending = pending.filter(el => {
+        const r = el.getBoundingClientRect();
+        if (atEnd || r.top < innerHeight * 0.88) { reveal(el); return false; }
+        return true;
+      });
+    };
+    addEventListener("scroll", () => { if (!rq2 && pending.length) { rq2 = true; requestAnimationFrame(check); } }, { passive: true });
+    addEventListener("resize", check);
+    check();
+    /* O mapa e os números também ganham sua animação quando entram */
+    document.querySelectorAll(".map").forEach(el => { if (!el.classList.contains("pre")) { el.classList.add("in"); } });
+
+    /* Números que contam até o valor (ex.: +20 anos) */
+    function countUp(el) {
+      const s = el.querySelector("strong"); if (!s || s.dataset.counted) return;
+      const m = s.textContent.match(/(\D*)(\d+)(.*)/); if (!m) return;
+      s.dataset.counted = 1;
+      const [ , pre, num, post] = m, end = +num, t0 = performance.now(), dur = 1600;
+      const tick = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4); s.textContent = pre + Math.round(end * e) + post; if (k < 1) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }
+    document.querySelectorAll(".stats").forEach(el => { if (!el.classList.contains("pre")) el.querySelectorAll(".stat").forEach(countUp); });
+
+    /* Profundidade dos cartões acompanhando o mouse (só em telas com mouse) */
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      document.querySelectorAll(".service, .stat, .loc-card, .tl-card").forEach(card => {
+        card.classList.add("tilt");
+        card.addEventListener("pointermove", ev => {
+          if (card.classList.contains("pre")) return;
+          const r = card.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width - .5, y = (ev.clientY - r.top) / r.height - .5;
+          card.classList.add("is-tilting");
+          card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-4px)`;
+        });
+        card.addEventListener("pointerleave", () => { card.classList.remove("is-tilting"); card.style.transform = ""; });
+      });
+
+      /* Botões magnéticos: puxam levemente em direção ao cursor */
+      document.querySelectorAll(".btn-cta, .btn-line, .btn-light").forEach(b => {
+        b.addEventListener("pointermove", ev => { const r = b.getBoundingClientRect(); b.style.transform = `translate(${((ev.clientX - r.left) / r.width - .5) * 8}px, ${((ev.clientY - r.top) / r.height - .5) * 6}px)`; });
+        b.addEventListener("pointerleave", () => { b.style.transform = ""; });
+      });
     }
   }
 })();
